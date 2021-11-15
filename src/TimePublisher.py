@@ -1,11 +1,12 @@
-import time
+import                       time
 
-from optimized import json_bus
-import settings
+from cmdline          import cmdline_parser
+from json_bus.factory import IJSonBus
 
 
 if __name__ == '__main__':
-    bus   = json_bus.JSonBus('time-publisher', settings.MCAST_GROUP, settings.PORT)
+    args  = cmdline_parser()
+    bus   = IJSonBus.create(args.impl, 'time-publisher', args.mcast_group, args.port)
     value = {'time': time.time()}
     while(True):
         t = time.time()

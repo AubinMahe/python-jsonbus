@@ -1,17 +1,25 @@
 #!/bin/bash
 
-OPTIMIZE=
-OPTIMIZE=-OO
+OPTIMIZE=$1
+
 cd src
 
 PIDS=()
-python $OPTIMIZE -m basic.TimePublisher &
+
+echo Launching TimePublisher
+python $OPTIMIZE -m TimePublisher        --impl basic &
 PIDS+=($!)
-python $OPTIMIZE -m basic.HelloPublisher &
+
+echo Launching HelloPublisher
+python $OPTIMIZE -m HelloPublisher       --impl basic &
 PIDS+=($!)
-python $OPTIMIZE -m basic.WorldPublisher &
+
+echo Launching WorldPublisher
+python $OPTIMIZE -m WorldPublisher       --impl basic &
 PIDS+=($!)
-python $OPTIMIZE -m basic.HelloWorldSubscriber &
+
+echo Launching HelloWorldSubscriber
+python $OPTIMIZE -m HelloWorldSubscriber --impl basic &
 PIDS+=($!)
 
 trap ctrl_c INT

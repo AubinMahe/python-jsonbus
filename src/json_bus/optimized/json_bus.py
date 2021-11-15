@@ -1,15 +1,18 @@
-from builtins import staticmethod
-import io
-import json
-import socket
-import struct
-import sys
-import threading
+from builtins          import staticmethod
+import                        io
+import                        json
+import                        socket
+import                        struct
+import                        sys
+import                        threading
 
 from typing_extensions import final
 
+from json_bus.factory  import IJSonBus
+from logger            import log_prefix
 
-class JSonBus:
+
+class JSonBus(IJSonBus):
 
     TOPICS_TOPIC: final = 'jsonbus.topics'
 
@@ -19,7 +22,7 @@ class JSonBus:
         self.__subscriptions = {}
         self.__is_master     = '--master' in sys.argv
         self.__remote_topics = set()
-        self.__thread        = threading.Thread(name = role, target = self.run)
+        self.__thread        = threading.Thread(name = role, target = self.__run)
         self.__mcast_group   = (group, port)
         self.__sock          = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         mreq = struct.pack('4sL', socket.inet_aton(group), socket.INADDR_ANY)
@@ -30,9 +33,9 @@ class JSonBus:
         self.__thread.start()
         self.subscribe(JSonBus.TOPICS_TOPIC, self.__update_remote_topics)
 
-    def subscribe(self, topic: str, consumer, classname: str = None):
+    def subscribe(self, topic: str, consumer, clazz: type = None):
+        self.__subscriptions[topic] = (consumer, (clazz.__module__ + '.' + clazz.__qualname__) if clazz else None)
         self.__remote_topics.add(topic)
-        self.__subscriptions[topic] = (consumer, classname)
         self.publish(JSonBus.TOPICS_TOPIC, self.__remote_topics)
     
     def __update_remote_topics(self, topic: str, topics: list):
@@ -64,11 +67,11 @@ class JSonBus:
             data = serializer.getvalue().encode()
             sent = self.__sock.sendto(data, self.__mcast_group)
             if __debug__:
-                print("json_bus.JSonBus[%s].publish|topic '%s' published, %d bytes sent." % (self.__role, topic, sent))
+                print("%s|topic '%s' published, %d bytes sent." % (log_prefix(self, self.__role), topic, sent))
         else:
             sent = 0
             if __debug__:
-                print("json_bus.JSonBus[%s].publish|No subscriber on '%s' topic." % (self.__role, topic))
+                print("%s|No subscriber to '%s' topic." % (log_prefix(self, self.__role), topic))
         return sent
 
     @staticmethod
@@ -83,14 +86,14 @@ class JSonBus:
             instance.__setattr__(k, value[k])
         return instance
 
-    def run(self):
+    def __run(self):
         while(self.__cont):
             (data,_) = self.__sock.recvfrom(64*1024)
             deserializer = io.BytesIO(data)
             msg = json.load(deserializer)
             topic = msg['topic']
             if __debug__:
-                print("json_bus.JSonBus[%s].run|topic '%s' received." % (self.__role, topic))
+                print("%s|topic '%s' received." % (log_prefix(self, self.__role), topic))
             if topic in self.__subscriptions:
                 value = msg['payload']
                 (consumer, classname) = self.__subscriptions[topic]

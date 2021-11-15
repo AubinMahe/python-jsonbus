@@ -4,9 +4,13 @@ import json
 import socket
 import struct
 import threading
+from time             import time
+
+from json_bus.factory import IJSonBus
+from logger           import log_prefix
 
 
-class JSonBus:
+class JSonBus(IJSonBus):
 
     def __init__(self, role: str, group: str, port: int):
         self.__role          = role
@@ -21,12 +25,12 @@ class JSonBus:
         self.__sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         self.__thread = None
 
-    def subscribe(self, topic: str, consumer, classname: str = None):
-        self.__subscriptions[topic] = (consumer, classname)
+    def subscribe(self, topic: str, consumer, clazz: type = None):
+        self.__subscriptions[topic] = (consumer, clazz.__module__ + '.' + clazz.__qualname__ if clazz else None)
         if self.__thread == None:
             # Puisqu'on souhaite recevoir des mises à jour de topics, il
             # faut démarrer le thread de réception.
-            self.__thread = threading.Thread(name=self.__role, target=self.run)
+            self.__thread = threading.Thread(name=self.__role, target=self.__run)
             self.__thread.start()
 
     def publish(self, topic: str, value)->int:
@@ -49,7 +53,7 @@ class JSonBus:
         data = serializer.getvalue().encode()
         sent = self.__sock.sendto(data, self.__mcast_group)
         if __debug__:
-            print("json_bus.JSonBus[%s].publish|topic '%s' published, %d bytes sent." % (self.__role, topic, sent))
+            print("%s|topic '%s' published, %d bytes sent." % (log_prefix(self, self.__role), topic, sent))
         return sent
 
     @staticmethod
@@ -64,14 +68,14 @@ class JSonBus:
             instance.__setattr__(k, value[k])
         return instance
 
-    def run(self):
+    def __run(self):
         while(self.__cont):
             (data,_) = self.__sock.recvfrom(64*1024)
             deserializer = io.BytesIO(data)
             msg = json.load(deserializer)
             topic = msg['topic']
             if __debug__:
-                print("json_bus.JSonBus[%s].run|topic '%s' received." % (self.__role, topic))
+                print("%s|topic '%s' received." % (log_prefix(self, self.__role), topic))
             if topic in self.__subscriptions:
                 value = msg['payload']
                 (consumer, classname) = self.__subscriptions[topic]
