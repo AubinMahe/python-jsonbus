@@ -5,7 +5,7 @@ from json_bus.factory import IJSonBus
 class WorldPublisher:
 
     def __init__(self, args: object):
-        self.__bus = IJSonBus.create(args.impl, 'WorldPublisher', args.mcast_group, args.port)
+        self.__bus = IJSonBus.create(args.impl, 'WorldPublisher', args.mcast_group, args.port, args.ttl)
         self.__bus.subscribe('time', self.__publish)
         # Ici, contrairement à HelloPublisher, on va publier un
         # dictionnaire et non un objet

@@ -22,16 +22,25 @@ indépendantes.
 
 D'un point de vue purement fonctionnel, la base des souscriptions de chaque noeud du réseau n'a pas besoin d'être partagée car le filtrage s'effectue du côté consommateur mais au prix de publications inutiles quand il n'existe pas de souscripteur.
 
+Si on souhaite optimiser l'activité réseau, on devra conditionner l'émission à l'existence d'un consommateur : chaque noeud doit connaître toutes les souscriptions qui devront être publiées à chaque souscription.
+
+Quand un participant rejoint le bus tardivement, il démarre avec une liste de topics qui ne contient que les siens, il doit donc être mis à jour par les autres participants qui reconnaissent cette situation en comparant leur liste à celle reçue et si cette dernière est plus complète, elle doit être émise.
+
 ### Version *basic* ###
 
-Seule la publication non filtrée, c'est-à-dire systématique, est implémentée et il n'y a donc pas de publication de la liste des topics à la souscription.
+Seule la publication non filtrée, c'est-à-dire systématique, est implémentée et il n'y a donc pas de publication de la liste des topics à la souscription. Des publications sans souscripteur transitent sur le réseau.
 
-### Version *optimized* ###
+### Version *master* ###
 
-Si on souhaite optimiser l'activité réseau, on devra conditionner l'émission à l'existance d'un consommateur : chaque noeud doit connaître toutes les souscriptions.
+Les souscriptions sont partagées. Afin d'éviter que tous les participants ne répondent bruyamment, l'un d'entre eux - le premier lancé - est désigné par une option de ligne de commande : `--master`. Ce comportement est déterministe mais présente toutefois l'inconvénient de violer la décentralisation, puisqu'un seul acteur possède un rôle unique, il s'agit d'un *SPOF*.
 
-La méthode `JSonBus.subscribe()` diffuse un message contenant la liste des souscriptions (*meta-données*).
+### Version *delayed* ###
 
-Quand un participant rejoint le bus tardivement, il démarre avec une liste de topics qui ne contient que les siens, il doit donc être mis à jour par les autres participants qui reconnaissent cette situation en comparant leur liste à celle reçue, si elle est plus complète, elle doit être émise.
+Les souscriptions sont partagées. Sur réception de la liste des souscriptions et si celle-ci est différente de celle connue localement, chaque participant arme un réveil de durée faible (de 0 à 200 ms) mais aléatoire dont l'expiration provoque la publication de toutes les souscriptions connues (action différée).
 
-Afin d'éviter que tous les participants ne répondent bruyamment, l'un d'entre eux - le premier lancé - est désigné par une option de ligne de commande : `--master`.
+Sur réception d'une liste de souscriptions identique à celle connue localement, le participant annule son action différée.
+
+Cette version conserve le caractère décentralisé,  exempt de *SPOF* mais au prix d'une perte de déterminisme.
+
+Une variante déterministe consiste à affecter à chaque participant une valeur fixe du réveil, par construction.
+Ainsi, on garantit le déterminisme, y compris quand un noeud disparaît.

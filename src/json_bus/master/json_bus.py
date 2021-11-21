@@ -16,11 +16,11 @@ class JSonBus(IJSonBus):
 
     TOPICS_TOPIC: final = 'jsonbus.topics'
 
-    def __init__(self, role: str, group: str, port: int):
+    def __init__(self, role: str, group: str, port: int, ttl: int):
         self.__role          = role
         self.__cont          = True
         self.__subscriptions = {}
-        self.__is_master     = '--master' in sys.argv
+        self.__is_master     = '--master'   in sys.argv
         self.__remote_topics = set()
         self.__thread        = threading.Thread(name = role, target = self.__run)
         self.__mcast_group   = (group, port)
@@ -28,16 +28,11 @@ class JSonBus(IJSonBus):
         mreq = struct.pack('4sL', socket.inet_aton(group), socket.INADDR_ANY)
         self.__sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.__sock.bind(('', port))
-        self.__sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
+        self.__sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
         self.__sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         self.__thread.start()
         self.subscribe(JSonBus.TOPICS_TOPIC, self.__update_remote_topics)
 
-    def subscribe(self, topic: str, consumer, clazz: type = None):
-        self.__subscriptions[topic] = (consumer, (clazz.__module__ + '.' + clazz.__qualname__) if clazz else None)
-        self.__remote_topics.add(topic)
-        self.publish(JSonBus.TOPICS_TOPIC, self.__remote_topics)
-    
     def __update_remote_topics(self, topic: str, topics: list):
         assert topic == JSonBus.TOPICS_TOPIC
         self.__remote_topics.update(topics)
@@ -45,6 +40,11 @@ class JSonBus(IJSonBus):
         # topics, we have to resent the merged list.
         if self.__is_master and (self.__remote_topics - set(topics) != set()):
             self.publish(JSonBus.TOPICS_TOPIC, self.__remote_topics)
+
+    def subscribe(self, topic: str, consumer, clazz: type = None):
+        self.__subscriptions[topic] = (consumer, (clazz.__module__ + '.' + clazz.__qualname__) if clazz else None)
+        self.__remote_topics.add(topic)
+        self.publish(JSonBus.TOPICS_TOPIC, self.__remote_topics)
 
     def publish(self, topic: str, value)->int:
         '''
@@ -61,8 +61,8 @@ class JSonBus(IJSonBus):
                 value = list(value)
             elif isinstance(value, object):
                 value = value.__dict__
+            msg        = {'topic': topic, 'payload': value}
             serializer = io.StringIO()
-            msg = {'topic': topic, 'payload': value}
             json.dump(msg, serializer)
             data = serializer.getvalue().encode()
             sent = self.__sock.sendto(data, self.__mcast_group)
@@ -87,19 +87,21 @@ class JSonBus(IJSonBus):
         return instance
 
     def __run(self):
+        log = self._open_observer()
         while(self.__cont):
-            (data,_) = self.__sock.recvfrom(64*1024)
-            deserializer = io.BytesIO(data)
-            msg = json.load(deserializer)
-            topic = msg['topic']
-            if __debug__:
-                print("%s|topic '%s' received." % (log_prefix(self, self.__role), topic))
+            (data, publisher) = self.__sock.recvfrom(64*1024)
+            length            = len(data)
+            deserializer      = io.BytesIO(data)
+            msg               = json.load(deserializer)
+            topic             = msg['topic']
+            value             = msg['payload']
+            self._observe( log, self.__role, publisher, length, topic, value)
             if topic in self.__subscriptions:
-                value = msg['payload']
                 (consumer, classname) = self.__subscriptions[topic]
                 if classname:
                     value = JSonBus.__create_instance_from_dict(classname, value)
                 consumer(topic, value)
+        self._close_observer(log)
 
     def join(self):
         self.__thread.join()

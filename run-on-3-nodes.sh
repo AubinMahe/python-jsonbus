@@ -2,21 +2,22 @@
 
 OPTIMIZE=$1
 
+#scp -r src/* aubin@eve:/home/apps/jsonbus     >/dev/null
+#scp -r src/* muriel@muriel:/home/apps/jsonbus >/dev/null
+
 cd src
 
 PIDS=()
 
-echo Launching TimePublisher
-python $OPTIMIZE -m TimePublisher        --impl optimized --master &
-PIDS+=($!)
+#echo Launching TimePublisher on eve
+#ssh aubin@eve "cd /home/apps/jsonbus && python $OPTIMIZE -m TimePublisher --impl optimized --master &" &
 
 echo Launching HelloPublisher
-python $OPTIMIZE -m HelloPublisher       --impl optimized &
+python $OPTIMIZE -m HelloPublisher --impl optimized &
 PIDS+=($!)
 
-echo Launching WorldPublisher
-python $OPTIMIZE -m WorldPublisher       --impl optimized &
-PIDS+=($!)
+#echo Launching WorldPublisher on muriel
+#ssh muriel@muriel "cd /home/apps/jsonbus && python $OPTIMIZE -m WorldPublisher --impl optimized &" &
 
 if [ -z "$OPTIMIZE" ] ; then
 # Pendant 4 secondes, les publications de HelloPublisher et WorldPublisher

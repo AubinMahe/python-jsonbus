@@ -6,7 +6,7 @@ from text             import Text
 class HelloPublisher:
 
     def __init__(self, args: object):
-        self.__bus = IJSonBus.create(args.impl, 'HelloPublisher', args.mcast_group, args.port)
+        self.__bus = IJSonBus.create(args.impl, 'HelloPublisher', args.mcast_group, args.port, args.ttl)
         self.__bus.subscribe('time', self.publish)
         # ici contrairement à WorldPublisher, on va publier un
         # objet et non un dictionnaire

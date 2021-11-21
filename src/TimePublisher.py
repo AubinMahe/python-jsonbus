@@ -6,7 +6,7 @@ from json_bus.factory import IJSonBus
 
 if __name__ == '__main__':
     args  = cmdline_parser()
-    bus   = IJSonBus.create(args.impl, 'time-publisher', args.mcast_group, args.port)
+    bus   = IJSonBus.create(args.impl, 'time-publisher', args.mcast_group, args.port, args.ttl)
     value = {'time': time.time()}
     while(True):
         t = time.time()

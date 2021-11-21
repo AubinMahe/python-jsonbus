@@ -2,7 +2,6 @@ from typing_extensions import final
 
 from cmdline           import cmdline_parser
 from json_bus.factory  import IJSonBus
-from logger            import log_prefix
 from text              import Text
 
 
@@ -20,7 +19,7 @@ class HelloWorldSubscriber:
     def __init__(self, args: object):
         self.__hello = {'time': 0.0, 'text':''}
         self.__world = Text()
-        self.__bus = IJSonBus.create(args.impl, HelloWorldSubscriber.ROLE, args.mcast_group, args.port)
+        self.__bus = IJSonBus.create(args.impl, HelloWorldSubscriber.ROLE, args.mcast_group, args.port, args.ttl)
         # On accepte de recevoir un dictionnaire
         self.__bus.subscribe('hello', self._hello)
         # Là, on précise qu'on souhaite recevoir  un objet de type text.Text
@@ -30,8 +29,10 @@ class HelloWorldSubscriber:
         hello = self.__hello['text']
         world = self.__world.text
         if hello and world:
-            print("%s|%d-%d: %s%s" %
-                  (log_prefix(self, HelloWorldSubscriber.ROLE), self.__hello['time'], self.__world.time, hello, world))
+            if self.__hello['time'] == self.__world.time:
+                print("%s%s" % (hello, world))
+            else:
+                print("%s%s (%d)" % (hello, world, self.__hello['time'] - self.__world.time))
             # On vérifie qu'on a bien un objet avec ses méthodes et pas
             # seulement les attributs de données.
             self.__world.set_time()
