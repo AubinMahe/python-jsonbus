@@ -61,7 +61,7 @@ class IJSonBus:
             log.flush()
         elif __debug__:
             print(
-                "%s|'%s'-->'%s', %d bytes from %s\n" % (log_prefix(self, role), topic, value, length, publisher))
+                "%s|'%s'-->'%s', %d bytes from %s" % (log_prefix(self, role), topic, value, length, publisher))
 
     def _close_observer(self, log: object):
         if log:

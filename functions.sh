@@ -12,8 +12,10 @@ PIDS=()
 cd src
 
 function launch() {
-   echo Launching $1 $2 $3 $4
-   python $OPTIMIZE -m $1 --impl $2 $3 $4 &
+   MAIN=$1
+   shift
+   echo python $OPTIMIZE -m $MAIN --impl $*
+   python $OPTIMIZE -m $MAIN --impl $* &
    PIDS+=($!)
 }
    

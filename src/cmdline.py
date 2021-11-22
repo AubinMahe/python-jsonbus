@@ -9,4 +9,5 @@ def cmdline_parser():
     parser.add_argument('--mcast-group', nargs='?', default='224.1.2.3', help='Multicast group (IP address)')
     parser.add_argument('--ttl'        , nargs='?', default=10         , help='Time-To-Live des paquets multicast')
     parser.add_argument('--port'       , nargs='?', default=2416       , help='Port used to send and listen')
+    parser.add_argument('--subs-share-delay', nargs='?', default='-1.0', help='Subscriptions republish delay')
     return parser.parse_args()

@@ -4,6 +4,7 @@ import                        json
 import                        random
 import                        socket
 import                        struct
+import                        sys
 import                        threading
 import                        time
 
@@ -30,11 +31,20 @@ class JSonBus(IJSonBus):
         self.__sock.bind(('', port))
         self.__sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
         self.__sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        try:
+            self.__delay = float(sys.argv[sys.argv.index('--subs-share-delay') + 1]) / 1000.0
+            if __debug__:
+                print("%s|delay specified = %5.3f" % (log_prefix(self, self.__role), self.__delay))
+        except:
+            # min 0 ms, max 200 ms
+            self.__delay = 0.200 * random.random()
+            if __debug__:
+                print("%s|random delay = %5.3f" % (log_prefix(self, self.__role), self.__delay))
         self.__thread.start()
         self.subscribe(JSonBus.TOPICS_TOPIC, self.__update_remote_topics)
 
     def __publish_subscriptions_after_timeout(self):
-        time.sleep(0.200 * random.random()) # min 0 ms, max 200 ms
+        time.sleep(self.__delay)
         if self.__subscriptions_must_be_published:
             self.publish(JSonBus.TOPICS_TOPIC, self.__remote_topics)
         self.__subscriptions_must_be_published = False
@@ -47,7 +57,7 @@ class JSonBus(IJSonBus):
         if len(self.__remote_topics - set(topics)):
             self.__subscriptions_must_be_published = True
             # Starting a Thread to handle the publisher function, under timeout
-            threading.Thread(name="role/publisher", target=self.__publish_subscriptions_after_timeout).start()
+            threading.Thread(name=self.__role + "/publisher", target=self.__publish_subscriptions_after_timeout).start()
         else:
             # Deactivate the timeout about subscriptions publishing
             self.__subscriptions_must_be_published = False

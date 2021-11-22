@@ -36,11 +36,11 @@ Les souscriptions sont partagées. Afin d'éviter que tous les participants ne r
 
 ### Version *delayed* ###
 
-Les souscriptions sont partagées. Sur réception de la liste des souscriptions et si celle-ci est différente de celle connue localement, chaque participant arme un réveil de durée faible (de 0 à 200 ms) mais aléatoire dont l'expiration provoque la publication de toutes les souscriptions connues (action différée).
+Les souscriptions sont partagées. Sur réception de la liste des souscriptions et si celle-ci est différente de celle connue localement, chaque participant arme un réveil de durée **aléatoire**, faible (de 0 à 200 ms) dont l'expiration provoque la publication de toutes les souscriptions connues (action différée).
 
 Sur réception d'une liste de souscriptions identique à celle connue localement, le participant annule son action différée.
 
-Cette version conserve le caractère décentralisé,  exempt de *SPOF* mais au prix d'une perte de déterminisme.
+Cette version conserve le caractère décentralisé, exempt de *SPOF* mais au prix d'une perte de déterminisme.
 
 Une variante déterministe consiste à affecter à chaque participant une valeur fixe du réveil, par construction.
-Ainsi, on garantit le déterminisme, y compris quand un noeud disparaît.
+Ainsi, on garantit le déterminisme, y compris quand un noeud disparaît, c'est l'objet de l'argument en ligne de commande optionnel **--subs-share-delay nn**.
